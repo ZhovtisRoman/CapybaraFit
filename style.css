@@ -1,0 +1,144 @@
+﻿/* style.css */
+
+/* Basic layout */
+body {
+  font-family: 'Montserrat', sans-serif;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  color: #fff; /* White text on your background */
+  background-color: #000; /* fallback if image not found */
+}
+
+/* Container for a mobile-like layout */
+#gameContainer {
+  max-width: 414px;
+  height: 736px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden; /* no scroll - we size everything to fit */
+  background: url("photo_2024-02-21_17-25-57.jpg") no-repeat center center;
+  background-size: cover; 
+}
+
+/* Tabs at the top */
+.tabs {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 6px;
+}
+.tabs button {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid #fff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.9em;
+  cursor: pointer;
+  margin: 0 3px;
+  transition: background-color 0.2s, transform 0.2s;
+}
+.tabs button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+button:active {
+  transform: scale(0.95);
+}
+
+/* Screens hidden by default */
+.screen {
+  display: none;
+  margin-top: 10px;
+}
+.screen.active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 10px;
+}
+
+/* Clicker screen elements */
+#score {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+#clickButton {
+  font-size: 1em;
+  padding: 8px 16px;
+}
+
+/* Capybara image smaller to save space */
+#capybara {
+  width: 120px;
+  transition: transform 0.2s;
+  margin-bottom: 10px;
+}
+
+/* Upgrades container */
+.upgrade {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  margin: 5px auto;
+  width: 70%;
+  padding: 8px;
+  border-radius: 6px;
+}
+.upgrade h3 {
+  margin: 0 0 3px;
+  font-size: 0.95em;
+}
+.upgrade p {
+  margin: 4px 0 6px;
+  font-size: 0.85em;
+}
+.upgrade button {
+  font-size: 0.75em;
+  padding: 4px 10px;
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+.upgrade button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+/* Pose exercise screen */
+#screenExercise video {
+  width: 300px; /* adjust as needed */
+  height: 220px; /* keep aspect ratio in mind */
+  background: #333; /* fallback if no camera */
+  margin-bottom: 10px;
+}
+#squatCount {
+  font-size: 1.2em;
+}
+#finishExerciseBtn {
+  margin-top: 10px;
+  padding: 6px 12px;
+  font-size: 0.9em;
+  background-color: rgba(255, 0, 0, 0.2);
+  border: 1px solid #fff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* VFX animation for upgrade purchase */
+@keyframes upgradeBurst {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+.upgradeEffect {
+  animation: upgradeBurst 0.5s ease;
+}

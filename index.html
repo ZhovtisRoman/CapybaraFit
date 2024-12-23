@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Capybara Fitness Clicker + Squat Exercise</title>
+  
+  <!-- Google Fonts Example -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="gameContainer">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button id="tabClicker">Clicker</button>
+      <button id="tabUpgrades">Upgrades</button>
+    </div>
+
+    <!-- Main Screen: Clicker -->
+    <div id="screenClicker" class="screen active">
+      <h1>Capybara Fitness</h1>
+      <img id="capybara" src="capybara.png" alt="Capybara" />
+      <p id="score">Score: 0</p>
+      <button id="clickButton">Click me</button>
+      <p id="autoPointsLabel">Auto Points/sec: 0</p>
+    </div>
+
+    <!-- Second Screen: Upgrades -->
+    <div id="screenUpgrades" class="screen">
+      <h2>Upgrades</h2>
+
+      <!-- Upgrade #1: +1 Click Power -->
+      <div class="upgrade">
+        <h3>Upgrade 1: +1 Click Power</h3>
+        <p>Cost: <span id="costU1">10</span></p>
+        <button id="buyU1">Buy</button>
+      </div>
+
+      <!-- Upgrade #2: Double Click Power -->
+      <div class="upgrade">
+        <h3>Upgrade 2: Double Click Power</h3>
+        <p>Cost: <span id="costU2">100</span></p>
+        <button id="buyU2">Buy</button>
+      </div>
+
+      <!-- Upgrade #3: +1 Auto Point/sec -->
+      <div class="upgrade">
+        <h3>Upgrade 3: +1 Auto Point/sec</h3>
+        <p>Cost: <span id="costU3">50</span></p>
+        <button id="buyU3">Buy</button>
+      </div>
+
+      <!-- Upgrade #4: +5 Auto Points/sec -->
+      <div class="upgrade">
+        <h3>Upgrade 4: +5 Auto Points/sec</h3>
+        <p>Cost: <span id="costU4">200</span></p>
+        <button id="buyU4">Buy</button>
+      </div>
+
+      <!-- Upgrade #5: Multiply EVERYTHING by 2 -->
+      <div class="upgrade">
+        <h3>Upgrade 5: Multiply EVERYTHING by 2</h3>
+        <p>Cost: <span id="costU5">1000</span></p>
+        <button id="buyU5">Buy</button>
+      </div>
+    </div>
+
+    <!-- Third Screen: Exercise -->
+    <div id="screenExercise" class="screen">
+      <h2>Do 10 Squats!</h2>
+      <!-- Video feed from the camera -->
+      <video id="exerciseCamera" playsinline></video>
+      <p>Squat Count: <span id="squatCount">0</span> / 10</p>
+      <!-- Finish button (user can press any time, or automatically finish after 10) -->
+      <button id="finishExerciseBtn">Finish</button>
+    </div>
+  </div>
+
+  <!-- Mediapipe Pose Library (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
+
+  <!-- Main JS -->
+  <script src="main.js"></script>
+</body>
+</html>
