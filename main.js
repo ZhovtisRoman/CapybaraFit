@@ -28,20 +28,21 @@ let pose; // MediaPipe Pose instance
 let poseActive = false;
 let lastFrameTime = 0;
 
-// Resize the canvas and video element dynamically for iPhone and PC
+// Resize the canvas and video element dynamically
 function resizeCanvas() {
   const container = document.getElementById('gameContainer');
   const containerWidth = container.clientWidth;
   const containerHeight = container.clientHeight;
 
-  const videoHeight = containerHeight * 0.6;
+  // Adjust video and canvas height
+  const videoHeight = containerHeight * 0.6; // Use 60% of the screen height
   const videoWidth = containerWidth;
 
   videoElement.style.width = `${videoWidth}px`;
   videoElement.style.height = `${videoHeight}px`;
 
-  canvas.width = videoElement.videoWidth;
-  canvas.height = videoElement.videoHeight;
+  canvas.width = videoWidth;
+  canvas.height = videoHeight;
 
   canvas.style.width = videoElement.style.width;
   canvas.style.height = videoElement.style.height;
@@ -73,7 +74,7 @@ async function startPoseExercise() {
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
     videoElement.srcObject = stream;
     videoElement.play();
 
@@ -138,14 +139,15 @@ function onPoseResults(results) {
 
 // Update Squat Count Display
 function updateSquatCount() {
-  squatCountElem.textContent = `Squat Count: ${squatCount} / ${squatGoal}`;
+    // Correctly update the text content only once
+    squatCountElem.textContent = `${squatCount} / ${squatGoal}`;
 }
 
 // Draw Landmarks
 function drawLandmarks(landmarks) {
   ctx.fillStyle = "red";
 
-  const pointSize = Math.max(3, Math.min(canvas.width, canvas.height) * 0.01);
+  const pointSize = Math.max(3, Math.min(canvas.width, canvas.height) * 0.02); // Adjust size for better visibility
 
   landmarks.forEach((landmark) => {
     ctx.beginPath();
@@ -168,7 +170,7 @@ function drawConnections(landmarks) {
   ];
 
   ctx.strokeStyle = "green";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2; // Thinner lines for better visibility
 
   connections.forEach(([startIdx, endIdx]) => {
     const start = landmarks[startIdx];
