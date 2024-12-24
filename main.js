@@ -20,36 +20,35 @@ const clickButton = document.getElementById('clickButton');
 const autoPointsLabel = document.getElementById('autoPointsLabel');
 const capybaraImg = document.getElementById('capybara');
 
-// Upgrades
-const costU1Elem = document.getElementById('costU1');
-const buyU1 = document.getElementById('buyU1');
-const costU2Elem = document.getElementById('costU2');
-const buyU2 = document.getElementById('buyU2');
-const costU3Elem = document.getElementById('costU3');
-const buyU3 = document.getElementById('buyU3');
-const costU4Elem = document.getElementById('costU4');
-const buyU4 = document.getElementById('buyU4');
-const costU5Elem = document.getElementById('costU5');
-const buyU5 = document.getElementById('buyU5');
-
 // Pose Exercise
 const screenExercise = document.getElementById('screenExercise');
 const finishExerciseBtn = document.getElementById('finishExerciseBtn');
 const squatCountElem = document.getElementById('squatCount');
 const videoElement = document.getElementById('exerciseCamera');
+const canvas = document.createElement('canvas'); // Canvas for drawing pose landmarks
+const ctx = canvas.getContext('2d');
+
+// Add the canvas overlay to the DOM
+videoElement.parentNode.insertBefore(canvas, videoElement.nextSibling);
+canvas.style.position = "absolute";
+canvas.style.top = videoElement.offsetTop + "px";
+canvas.style.left = videoElement.offsetLeft + "px";
+canvas.style.zIndex = "1";
+canvas.style.pointerEvents = "none";
 
 let squatCount = 0;
 let isSquatting = false;
 const squatGoal = 10;
 let pose;   // Mediapipe Pose instance
-let poseActive = false; // track if we're actively sending frames to Pose
+let poseActive = false; // Track if we're actively sending frames to Pose
 
-// Display initial costs
-costU1Elem.textContent = costU1;
-costU2Elem.textContent = costU2;
-costU3Elem.textContent = costU3;
-costU4Elem.textContent = costU4;
-costU5Elem.textContent = costU5;
+// Initialize canvas size
+function resizeCanvas() {
+  canvas.width = videoElement.videoWidth;
+  canvas.height = videoElement.videoHeight;
+}
+videoElement.addEventListener('loadeddata', resizeCanvas);
+window.addEventListener('resize', resizeCanvas);
 
 // Clicker main button -> Instead of +score, open exercise
 clickButton.addEventListener('click', () => {
@@ -66,27 +65,27 @@ async function startPoseExercise() {
   isSquatting = false;
   squatCountElem.textContent = squatCount;
 
-  // Create new Pose instance if not existing
+  // Create a new Pose instance
   if (!pose) {
-    pose = new Pose.Pose({
+    pose = new Pose({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
     });
 
-    // Pose options
+    // Set Pose options
     pose.setOptions({
       selfieMode: true,
       modelComplexity: 1,
       smoothLandmarks: true,
       enableSegmentation: false,
-      smoothSegmentation: false,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5,
     });
 
+    // Attach the onResults callback
     pose.onResults(onPoseResults);
   }
 
-  // Get camera
+  // Start the camera
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     videoElement.srcObject = stream;
@@ -112,12 +111,17 @@ function sendVideoFrame() {
 function onPoseResults(results) {
   if (!results.poseLandmarks) return;
 
-  // Example: use left side (hip: 23, knee: 25)
+  // Clear the canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw landmarks
+  drawLandmarks(results.poseLandmarks);
+
+  // Squat detection logic
   const leftHip = results.poseLandmarks[23];
   const leftKnee = results.poseLandmarks[25];
   if (!leftHip || !leftKnee) return;
 
-  // Basic squat detection by Y-coord difference
   const diff = leftHip.y - leftKnee.y;
 
   if (!isSquatting && diff < 0.05) {
@@ -132,6 +136,37 @@ function onPoseResults(results) {
       finishExercise();
     }
   }
+}
+
+function drawLandmarks(landmarks) {
+  ctx.fillStyle = "red";
+  ctx.strokeStyle = "green";
+  ctx.lineWidth = 2;
+
+  // Draw circles for landmarks
+  landmarks.forEach((landmark) => {
+    ctx.beginPath();
+    const x = landmark.x * canvas.width;
+    const y = landmark.y * canvas.height;
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+
+  // Draw lines connecting landmarks (e.g., skeleton)
+  const connections = [
+    [11, 12], [12, 24], [24, 26], [26, 28], // Right leg
+    [11, 23], [23, 25], [25, 27]           // Left leg
+  ];
+  connections.forEach(([startIdx, endIdx]) => {
+    const start = landmarks[startIdx];
+    const end = landmarks[endIdx];
+    if (start && end) {
+      ctx.beginPath();
+      ctx.moveTo(start.x * canvas.width, start.y * canvas.height);
+      ctx.lineTo(end.x * canvas.width, end.y * canvas.height);
+      ctx.stroke();
+    }
+  });
 }
 
 function finishExercise() {
@@ -163,44 +198,7 @@ finishExerciseBtn.addEventListener('click', () => {
   finishExercise();
 });
 
-// -- Upgrades Logic --
-
-buyU1.addEventListener('click', () => {
-  if (score >= costU1) {
-    score -= costU1;
-    clickPower += 1;
-    costU1 += 10;
-    costU1Elem.textContent = costU1;
-    updateScoreUI();
-  } else {
-    alert(`Not enough points! Need at least ${costU1}.`);
-  }
-});
-
-// Add similar logic for buyU2, buyU3, buyU4, buyU5...
-
-// -- Tab Switching Logic --
-tabClicker.addEventListener('click', () => {
-  screenClicker.classList.add('active');
-  screenUpgrades.classList.remove('active');
-});
-tabUpgrades.addEventListener('click', () => {
-  screenUpgrades.classList.add('active');
-  screenClicker.classList.remove('active');
-});
-
 // -- Update UI Functions --
 function updateScoreUI() {
   scoreElement.textContent = `Score: ${score}`;
 }
-function updateAutoPointsUI() {
-  autoPointsLabel.textContent = `Auto Points/sec: ${autoPoints}`;
-}
-
-// -- Auto Points Loop --
-setInterval(() => {
-  if (autoPoints > 0) {
-    score += autoPoints;
-    updateScoreUI();
-  }
-}, 1000);
