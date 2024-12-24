@@ -1,77 +1,63 @@
 // -- Main Game Variables --
 let score = 0;
-let clickPower = 1;   // how many points per click
-let autoPoints = 0;   // how many points added automatically per second
-
-// Upgrade costs (initial values)
-let costU1 = 10;
-let costU2 = 100;
-let costU3 = 50;
-let costU4 = 200;
-let costU5 = 1000;
+let clickPower = 1;   // Points per click
+let autoPoints = 0;   // Points added automatically per second
 
 // DOM Elements
-const tabClicker = document.getElementById('tabClicker');
-const tabUpgrades = document.getElementById('tabUpgrades');
 const screenClicker = document.getElementById('screenClicker');
-const screenUpgrades = document.getElementById('screenUpgrades');
-const scoreElement = document.getElementById('score');
-const clickButton = document.getElementById('clickButton');
-const autoPointsLabel = document.getElementById('autoPointsLabel');
-const capybaraImg = document.getElementById('capybara');
-
-// Pose Exercise
 const screenExercise = document.getElementById('screenExercise');
-const finishExerciseBtn = document.getElementById('finishExerciseBtn');
+const clickButton = document.getElementById('clickButton');
 const squatCountElem = document.getElementById('squatCount');
 const videoElement = document.getElementById('exerciseCamera');
-const canvas = document.createElement('canvas'); // Canvas for drawing pose landmarks
+const finishExerciseBtn = document.getElementById('finishExerciseBtn');
+
+// Create Canvas Overlay for Pose Indicators
+const canvas = document.createElement('canvas');
 const ctx = canvas.getContext('2d');
 
 // Add the canvas overlay to the DOM
 videoElement.parentNode.insertBefore(canvas, videoElement.nextSibling);
 canvas.style.position = "absolute";
-canvas.style.top = videoElement.offsetTop + "px";
-canvas.style.left = videoElement.offsetLeft + "px";
+canvas.style.top = "0";
+canvas.style.left = "0";
 canvas.style.zIndex = "1";
 canvas.style.pointerEvents = "none";
 
 let squatCount = 0;
 let isSquatting = false;
 const squatGoal = 10;
-let pose;   // Mediapipe Pose instance
-let poseActive = false; // Track if we're actively sending frames to Pose
+let pose;   // MediaPipe Pose instance
+let poseActive = false;
+let lastFrameTime = 0;
 
-// Initialize canvas size
+// Resize canvas to match video feed and limit size
 function resizeCanvas() {
+  const containerWidth = window.innerWidth * 0.9; // 90% of screen width
+  const containerHeight = window.innerHeight * 0.6; // 60% of screen height
+
+  videoElement.style.width = `${containerWidth}px`;
+  videoElement.style.height = `${containerHeight}px`;
+
   canvas.width = videoElement.videoWidth;
   canvas.height = videoElement.videoHeight;
+
+  canvas.style.width = `${containerWidth}px`;
+  canvas.style.height = `${containerHeight}px`;
 }
 videoElement.addEventListener('loadeddata', resizeCanvas);
 window.addEventListener('resize', resizeCanvas);
 
-// Clicker main button -> Instead of +score, open exercise
-clickButton.addEventListener('click', () => {
-  // Show exercise screen, hide main
-  screenClicker.classList.remove('active');
-  screenExercise.classList.add('active');
-  startPoseExercise();
-});
-
-// -- Pose Exercise Logic --
-
+// -- Start Exercise Logic --
 async function startPoseExercise() {
   squatCount = 0;
   isSquatting = false;
   squatCountElem.textContent = squatCount;
 
-  // Create a new Pose instance
   if (!pose) {
     pose = new Pose({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
     });
 
-    // Set Pose options
     pose.setOptions({
       selfieMode: true,
       modelComplexity: 1,
@@ -81,54 +67,65 @@ async function startPoseExercise() {
       minTrackingConfidence: 0.5,
     });
 
-    // Attach the onResults callback
     pose.onResults(onPoseResults);
   }
 
-  // Start the camera
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     videoElement.srcObject = stream;
     videoElement.play();
-  } catch (error) {
-    alert("Unable to access the camera.");
-    console.error(error);
-    finishExercise();
-    return;
-  }
 
-  // Start sending frames to Pose
-  poseActive = true;
-  videoElement.addEventListener('loadeddata', sendVideoFrame);
+    videoElement.addEventListener('loadeddata', () => {
+      resizeCanvas();
+      poseActive = true;
+      sendVideoFrame();
+    });
+  } catch (error) {
+    console.error("Camera access error:", error);
+    alert("Unable to access the camera.");
+  }
 }
 
+// -- Send Video Frames to Pose --
 function sendVideoFrame() {
   if (!poseActive) return;
-  pose.send({ image: videoElement });
+
+  const now = performance.now();
+  if (now - lastFrameTime >= 100) { // Throttle to 10 FPS
+    lastFrameTime = now;
+    pose.send({ image: videoElement });
+  }
+
   requestAnimationFrame(sendVideoFrame);
 }
 
+// -- Handle Pose Results --
 function onPoseResults(results) {
   if (!results.poseLandmarks) return;
 
   // Clear the canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw landmarks
+  // Draw landmarks and connections
   drawLandmarks(results.poseLandmarks);
+  drawConnections(results.poseLandmarks);
 
-  // Squat detection logic
-  const leftHip = results.poseLandmarks[23];
-  const leftKnee = results.poseLandmarks[25];
-  if (!leftHip || !leftKnee) return;
+  // Squat detection
+  const leftHip = results.poseLandmarks[23]; // Left hip
+  const leftKnee = results.poseLandmarks[25]; // Left knee
+  const leftAnkle = results.poseLandmarks[27]; // Left ankle
 
-  const diff = leftHip.y - leftKnee.y;
+  if (!leftHip || !leftKnee || !leftAnkle) return;
 
-  if (!isSquatting && diff < 0.05) {
-    isSquatting = true; // User is squatting
+  const hipKneeDistance = Math.abs(leftHip.y - leftKnee.y);
+  const kneeAnkleDistance = Math.abs(leftKnee.y - leftAnkle.y);
+
+  // Adjust thresholds for better squat detection
+  if (!isSquatting && hipKneeDistance < 0.1 && kneeAnkleDistance > 0.1) {
+    isSquatting = true; // User is "down"
   }
-  if (isSquatting && diff > 0.15) {
-    isSquatting = false; // Squat completed
+  if (isSquatting && hipKneeDistance > 0.15) {
+    isSquatting = false; // User has "stood up"
     squatCount++;
     squatCountElem.textContent = squatCount;
 
@@ -138,25 +135,35 @@ function onPoseResults(results) {
   }
 }
 
+// -- Draw Landmarks --
 function drawLandmarks(landmarks) {
   ctx.fillStyle = "red";
+
+  const pointSize = Math.max(3, Math.min(canvas.width, canvas.height) * 0.01); // Dynamically scale point size
+
+  landmarks.forEach((landmark) => {
+    ctx.beginPath();
+    ctx.arc(
+      landmark.x * canvas.width,
+      landmark.y * canvas.height,
+      pointSize, // Use dynamic point size
+      0,
+      2 * Math.PI
+    );
+    ctx.fill();
+  });
+}
+
+// -- Draw Connections --
+function drawConnections(landmarks) {
+  const connections = [
+    [11, 12], [12, 24], [24, 26], [26, 28], // Right side
+    [11, 23], [23, 25], [25, 27]           // Left side
+  ];
+
   ctx.strokeStyle = "green";
   ctx.lineWidth = 2;
 
-  // Draw circles for landmarks
-  landmarks.forEach((landmark) => {
-    ctx.beginPath();
-    const x = landmark.x * canvas.width;
-    const y = landmark.y * canvas.height;
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    ctx.fill();
-  });
-
-  // Draw lines connecting landmarks (e.g., skeleton)
-  const connections = [
-    [11, 12], [12, 24], [24, 26], [26, 28], // Right leg
-    [11, 23], [23, 25], [25, 27]           // Left leg
-  ];
   connections.forEach(([startIdx, endIdx]) => {
     const start = landmarks[startIdx];
     const end = landmarks[endIdx];
@@ -169,36 +176,25 @@ function drawLandmarks(landmarks) {
   });
 }
 
+// -- Finish Exercise --
 function finishExercise() {
-  // Stop camera and pose
-  stopPoseExercise();
-
-  // Reward user if they reached 10
-  if (squatCount >= squatGoal) {
-    score += 10; // Reward example
-    updateScoreUI();
-  }
-
-  // Return to main screen
-  screenExercise.classList.remove('active');
-  screenClicker.classList.add('active');
-}
-
-function stopPoseExercise() {
   poseActive = false;
   const tracks = videoElement.srcObject?.getTracks();
   if (tracks) {
     tracks.forEach((track) => track.stop());
   }
   videoElement.srcObject = null;
+
+  // Reward the user
+  alert(`Exercise complete! You did ${squatCount} squats!`);
 }
 
-// Manual finish button
-finishExerciseBtn.addEventListener('click', () => {
-  finishExercise();
+// Button to finish exercise manually
+finishExerciseBtn.addEventListener('click', finishExercise);
+
+// Start exercise when clicking "Click" button
+clickButton.addEventListener('click', () => {
+  screenClicker.classList.remove('active');
+  screenExercise.classList.add('active');
+  startPoseExercise();
 });
-
-// -- Update UI Functions --
-function updateScoreUI() {
-  scoreElement.textContent = `Score: ${score}`;
-}
